@@ -8,7 +8,7 @@ LD = gcc
 LDFLAGS = -ggdb
 LDLIBS = -lrt -lpthread -lm
 
-SRCS   = produce.c 
+SRCS   = produce.c
 OBJS   = produce.o
 TARGETS= produce
 

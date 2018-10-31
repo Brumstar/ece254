@@ -38,21 +38,30 @@ int main(int argc, char *argv[])
 	num_p = atoi(argv[3]);  /* number of producers        */
 	num_c = atoi(argv[4]);  /* number of consumers        */
 
+	gettimeofday(&tv, NULL);
+        g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
 	
-
+	printf("Doing first fork of consumers\n");
 	consumer_spawner_pid = fork();
 
 	if (consumer_spawner_pid > 0) {
 		// parent
-	} else {
+	} else if (consumer_spawner_pid == 0) {
+		printf("First child\n");
 		pid_t cons_pids[num_c];
 		for (int i = 0; i < num_c; i++) {
+			printf("I'm spawning consumers\n");
 			cons_pids[i] = fork();
-			printf("Forked pid is %d\n", cons_pids[i]);	
+			printf("Forked pid is %d\n", cons_pids[i]);
+			if (cons_pids[i] == 0) {
+				printf("Consumer\n");
+			} else {
+				return 0;
+			}
 		}
+	} else {
+		return -1;
 	}
-	gettimeofday(&tv, NULL);
-	g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
 
     gettimeofday(&tv, NULL);
@@ -62,3 +71,5 @@ int main(int argc, char *argv[])
             g_time[1] - g_time[0]);
 	exit(0);
 }
+
+
