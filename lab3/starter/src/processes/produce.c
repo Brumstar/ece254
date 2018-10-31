@@ -45,19 +45,19 @@ int main(int argc, char *argv[])
 
 	mq_unlink("/coolqueue");
  	attr.mq_maxmsg = 10;
-    attr.mq_msgsize = 1024;
+    attr.mq_msgsize = 20;
     queue_d = mq_open("/coolqueue", O_RDWR | O_CREAT, 0644, &attr);
     printf("Open desc %d\n", queue_d);
     mqd_t send = mq_open("/coolqueue", O_WRONLY);
     printf("Send desc %d\n", send);
-    printf("Sending %u\n", 44);
-    mq_send(queue_d, "some message", strlen("some message") + 1, 1);
+    mq_send(queue_d, "1\0", strlen("1\0"), 1);
     mqd_t recv = mq_open("/coolqueue", O_RDONLY);
     printf("Recv desc %d\n", recv);
-    char rcv[2048];
-    mq_receive(recv, rcv, 2048, NULL);
+    char rcv[40];
+    mq_receive(recv, rcv, 40, NULL);
     perror(NULL);
-    printf("Received %s\n", rcv);
+    int received = atoi(rcv);
+    printf ("Received int %d", received);
 
 	pini = fork();
 	if (pini<0){
@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
                 printf("Forked cons_pid is %d\n", cons_pids[i]);
                 if (cons_pids[i] == 0) {
                     printf("Consumer\n");
+		    consumer();
                 } else {
                     return 0;
                 }
@@ -117,3 +118,10 @@ int main(int argc, char *argv[])
 	exit(0);
 }
 
+void consumer() {
+    mqd_t recv = mq_open("/coolqueue", O_RDONLY);
+    printf("Recv desc %d\n", recv);
+    char rcv[2048];
+    mq_receive(recv, rcv, 2048, NULL);
+    printf("Received %s\n", rcv);
+}
