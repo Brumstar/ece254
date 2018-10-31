@@ -17,7 +17,7 @@
 #include <sys/fcntl.h>
 
 double g_time[2];
-
+void producer(int);
 
 int main(int argc, char *argv[])
 {
@@ -48,17 +48,8 @@ int main(int argc, char *argv[])
     attr.mq_msgsize = 20;
     queue_d = mq_open("/coolqueue", O_RDWR | O_CREAT, 0644, &attr);
     printf("Open desc %d\n", queue_d);
-    mqd_t send = mq_open("/coolqueue", O_WRONLY);
-    printf("Send desc %d\n", send);
-    mq_send(queue_d, "1\0", strlen("1\0"), 1);
-    mqd_t recv = mq_open("/coolqueue", O_RDONLY);
-    printf("Recv desc %d\n", recv);
-    char rcv[40];
-    mq_receive(recv, rcv, 40, NULL);
-    perror(NULL);
-    int received = atoi(rcv);
-    printf ("Received int %d", received);
 
+   
 	pini = fork();
 	if (pini<0){
 		return -1;
@@ -73,6 +64,7 @@ int main(int argc, char *argv[])
     		printf("Forked pros_pid is %d\n", pros_pids[i]);
             if (pros_pids[i] == 0) {
                 printf("Producer\n");
+                producer(i);
             } else {
                 return 0;
             }
@@ -94,7 +86,6 @@ int main(int argc, char *argv[])
                 printf("Forked cons_pid is %d\n", cons_pids[i]);
                 if (cons_pids[i] == 0) {
                     printf("Consumer\n");
-		    consumer();
                 } else {
                     return 0;
                 }
@@ -118,10 +109,16 @@ int main(int argc, char *argv[])
 	exit(0);
 }
 
-void consumer() {
-    mqd_t recv = mq_open("/coolqueue", O_RDONLY);
-    printf("Recv desc %d\n", recv);
-    char rcv[2048];
-    mq_receive(recv, rcv, 2048, NULL);
-    printf("Received %s\n", rcv);
+void producer(int i){
+	
+	mqd_t send = mq_open("/coolqueue", O_WRONLY);
+	printf("Send desc %d\n", send);
+
+    string *msg;
+    for (int j = i; j < num; j += num_p){
+    	itoa ( i, msg, 10);
+    	mq_send(queue_d, *msg, strlen(*msg), 1);
+    }
+
 }
+
