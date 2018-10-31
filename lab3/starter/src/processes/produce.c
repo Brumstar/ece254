@@ -13,7 +13,9 @@
 #include <sys/wait.h>
 #include <math.h>
 #include <sys/fcntl.h>
-
+#include <fcntl.h>
+#include <mqueue.h>
+#include <errno.h>
 double g_time[2];
 
 
@@ -23,9 +25,9 @@ int main(int argc, char *argv[])
 	int maxmsg;
 	int num_p;
 	int num_c;
-	int i;
+	int errno;
 	struct timeval tv;
-
+	mqd_t queue_d;
 	pid_t consumer_spawner_pid;
 
 	if (argc != 5) {
@@ -40,7 +42,8 @@ int main(int argc, char *argv[])
 
 	gettimeofday(&tv, NULL);
         g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
-	
+	queue_d = mq_open("/coolqueue", O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO, NULL);	
+	printf("Queue desc %d\n", queue_d);
 	printf("Doing first fork of consumers\n");
 	consumer_spawner_pid = fork();
 
@@ -64,10 +67,10 @@ int main(int argc, char *argv[])
 	}
 
 
-    gettimeofday(&tv, NULL);
-    g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
+    	gettimeofday(&tv, NULL);
+    	g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
-    printf("System execution time: %.6lf seconds\n", \
+    	printf("System execution time: %.6lf seconds\n", \
             g_time[1] - g_time[0]);
 	exit(0);
 }
