@@ -68,18 +68,16 @@ int main(int argc, char *argv[])
             if (pros_pids[i] == 0) {
                 printf("Producer\n");
                 producer(i);
-		return 0;
             } else {
                 return 0;
             }
     	}
-	}
-    else {
+    } else {
     	pid_t cini;
     	cini = fork();
     	if (cini<0){
     		return -1;
-    	}else if (cini == 0){
+    	} else if (cini == 0){
     		/*spwaner c*/
     		printf("Consumer spwaner\n");
             pid_t cons_pids[num_c];
