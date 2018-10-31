@@ -16,7 +16,9 @@
 #include <fcntl.h>
 #include <mqueue.h>
 #include <errno.h>
+
 double g_time[2];
+
 
 
 int main(int argc, char *argv[])
@@ -28,6 +30,7 @@ int main(int argc, char *argv[])
 	int errno;
 	struct timeval tv;
 	mqd_t queue_d;
+	struct mq_attr attr;
 	pid_t consumer_spawner_pid;
 
 	if (argc != 5) {
@@ -39,11 +42,24 @@ int main(int argc, char *argv[])
 	maxmsg = atoi(argv[2]); /* buffer size                */
 	num_p = atoi(argv[3]);  /* number of producers        */
 	num_c = atoi(argv[4]);  /* number of consumers        */
-
+	mq_unlink("/coolqueue");
 	gettimeofday(&tv, NULL);
         g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
-	queue_d = mq_open("/coolqueue", O_RDWR | O_CREAT, S_IRWXU | S_IRWXG | S_IRWXO, NULL);	
-	printf("Queue desc %d\n", queue_d);
+	attr.mq_maxmsg = 10;
+	attr.mq_msgsize = 1024;
+	queue_d = mq_open("/coolqueue", O_RDWR | O_CREAT, 0644, &attr);
+	printf("Open desc %d\n", queue_d);
+	mqd_t send = mq_open("/coolqueue", O_WRONLY);
+	printf("Send desc %d\n", send);
+	printf("Sending %u\n", 44);
+	mq_send(queue_d, "some message", strlen("some message") + 1, 1);
+	mqd_t recv = mq_open("/coolqueue", O_RDONLY);
+	printf("Recv desc %d\n", recv);
+	char rcv[2048];
+	mq_receive(recv, rcv, 2048, NULL);
+	perror(NULL);
+	printf("Received %s\n", rcv);
+	
 	printf("Doing first fork of consumers\n");
 	consumer_spawner_pid = fork();
 
