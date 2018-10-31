@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <mqueue.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <sys/time.h>
@@ -13,6 +12,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <math.h>
+#include <sys/fcntl.h>
 
 double g_time[2];
 
@@ -26,6 +26,8 @@ int main(int argc, char *argv[])
 	int i;
 	struct timeval tv;
 
+	pid_t consumer_spawner_pid;
+
 	if (argc != 5) {
 		printf("Usage: %s <N> <B> <P> <C>\n", argv[0]);
 		exit(1);
@@ -36,7 +38,19 @@ int main(int argc, char *argv[])
 	num_p = atoi(argv[3]);  /* number of producers        */
 	num_c = atoi(argv[4]);  /* number of consumers        */
 
+	
 
+	consumer_spawner_pid = fork();
+
+	if (consumer_spawner_pid > 0) {
+		// parent
+	} else {
+		pid_t cons_pids[num_c];
+		for (int i = 0; i < num_c; i++) {
+			cons_pids[i] = fork();
+			printf("Forked pid is %d\n", cons_pids[i]);	
+		}
+	}
 	gettimeofday(&tv, NULL);
 	g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
