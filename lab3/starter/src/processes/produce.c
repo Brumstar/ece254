@@ -28,6 +28,7 @@ mqd_t queue_d;
 struct mq_attr attr;
 
 void producer(int);
+void consumer(mqd_t fd);
 
 int main(int argc, char *argv[])
 {
@@ -87,9 +88,10 @@ int main(int argc, char *argv[])
                 cons_pids[i] = fork();
                 printf("Forked cons_pid is %d\n", cons_pids[i]);
                 if (cons_pids[i] == 0) {
-                    printf("Consumer\n");
-                } else {
-                    return 0;
+                    consumer_id = i;
+                    printf("Consumer id %d spawned.\n", consumer_id);
+                    mqd_t recv = mq_open("/coolqueue", O_RDONLY);
+                    consumer(recv);
                 }
             }
     
@@ -99,8 +101,8 @@ int main(int argc, char *argv[])
     }
 
 
-	gettimeofday(&tv, NULL);
-	g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
+    gettimeofday(&tv, NULL);
+    g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
 
     gettimeofday(&tv, NULL);
@@ -108,13 +110,12 @@ int main(int argc, char *argv[])
 
     printf("System execution time: %.6lf seconds\n", \
             g_time[1] - g_time[0]);
-	exit(0);
+    exit(0);
 }
 
-void producer(int i){
-	
-	mqd_t send = mq_open("/coolqueue", O_WRONLY);
-	printf("Send desc %d\n", send);
+void producer(int i){	
+    mqd_t send = mq_open("/coolqueue", O_WRONLY);
+    printf("Send desc %d\n", send);
 
     char msg[num];
     for (int j = i; j < num; j += num_p){
@@ -124,3 +125,19 @@ void producer(int i){
 
 }
 
+void consumer(mqd_t fd) {
+    int received;
+    int root;
+    printf("Recv desc %d\n", fd);
+    char rcv[40];
+    while(1) {
+        mq_receive(fd, rcv, 40, NULL);
+        received = atoi(rcv);
+        printf("Consumer %d Received int %d", consumer_id, received);
+        root = sqrt(received);
+        if ((root * root) == received) {
+                printf("%d %d %d\n", consumer_id, received, root);
+        }
+    }
+    perror(NULL);
+}
