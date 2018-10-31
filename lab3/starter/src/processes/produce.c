@@ -16,21 +16,22 @@
 #include <fcntl.h>
 #include <sys/fcntl.h>
 
+
 double g_time[2];
+int num;
+int maxmsg;
+int num_p;
+int num_c;
+struct timeval tv;
+pid_t pini;
+mqd_t queue_d;
+struct mq_attr attr;
+
 void producer(int);
 
 int main(int argc, char *argv[])
 {
-	int num;
-	int maxmsg;
-	int num_p;
-	int num_c;
-	int i;
-	struct timeval tv;
-	pid_t pini;
 	
-	mqd_t queue_d;
-	struct mq_attr attr;
 
 
 	if (argc != 5) {
@@ -65,6 +66,7 @@ int main(int argc, char *argv[])
             if (pros_pids[i] == 0) {
                 printf("Producer\n");
                 producer(i);
+		return 0;
             } else {
                 return 0;
             }
@@ -114,10 +116,10 @@ void producer(int i){
 	mqd_t send = mq_open("/coolqueue", O_WRONLY);
 	printf("Send desc %d\n", send);
 
-    string *msg;
+    char msg[num];
     for (int j = i; j < num; j += num_p){
-    	itoa ( i, msg, 10);
-    	mq_send(queue_d, *msg, strlen(*msg), 1);
+    	sprintf(msg,"%d",j);
+    	mq_send(queue_d, msg, strlen(msg), 1);
     }
 
 }
