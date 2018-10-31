@@ -22,6 +22,7 @@ int num;
 int maxmsg;
 int num_p;
 int num_c;
+int consumer_id;
 struct timeval tv;
 pid_t pini;
 mqd_t queue_d;
