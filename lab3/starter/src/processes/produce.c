@@ -47,9 +47,10 @@ int main(int argc, char *argv[])
 	num_c = atoi(argv[4]);  /* number of consumers        */
 
 	mq_unlink("/coolqueue");
- 	attr.mq_maxmsg = 10;
         attr.mq_msgsize = 20;
+        attr.mq_msgsize = maxmsg;
         queue_d = mq_open("/coolqueue", O_RDWR | O_CREAT, 0644, &attr);
+        printf("Open desc %d\n", queue_d);
 
    
 	pini = fork();
