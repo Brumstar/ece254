@@ -6,11 +6,9 @@
 #include <semaphore.h>
 #include <openssl/sha.h>
 
-#define NUM_ELVES 5
 
 /* Please don't change anything between this line and 
  *    the start of the global variables */
-#define HASH_BUFFER_LENGTH 32
 
 unsigned int random_seed = 252;
 int task_id_counter = 0;
@@ -33,7 +31,7 @@ int active_tasks;
 pthread_mutex_t mutex;
 sem_t empty_list;
 sem_t full_list;
-pthread_t threads[6];
+
 
 /* Function Prototypes for pthreads */
 void* dobby( void* );
@@ -74,34 +72,43 @@ void house_elf_cleanup( void * );
 /* Complete the implementation of main() */
 
 int main( int argc, char** argv ) {
-  if ( argc != 2 ) {
-      printf( "Usage: %s total_tasks\n", argv[0] );
+  if ( argc != 5 ) {
+      printf( "Wrong arguments\n");
       return -1;
   }
   /* Init global variables here */
   list_head = NULL;
   total_tasks = atoi( argv[1] );
+  buffer_size = atoi( argv[2] );
+  producer_num = atoi( argv[3] );
+  consumer_num = atoi( argv[4] );
     
   active_tasks = 0;
   pthread_mutex_init( &mutex, NULL );
   sem_init( &full_list, 0, 0 );
   sem_init( &empty_list, 0, 0 );
+  pthread_t P[producer_num];
+  pthread_t C[consumer_num];
   
   
   
   printf("There are %d tasks to do today.\n", total_tasks);
   
   /* Launch threads here */
-    for( int i = 0; i < NUM_ELVES; i++ ) {
+    for( int i = 0; i < producer_num; i++ ){
+    	int* id = malloc(sizeof(int));
+    	*id = i;
+   		pthread_create(&P[i],NULL,dobby,id);
+    }
+
+    for( int i = 0; i < consumer_num; i++ ) {
         int* id = malloc(sizeof(int));
         *id = i;
-        pthread_create(&threads[i], NULL, house_elf, id);
+        pthread_create(&C[i], NULL, house_elf, id);
     }
-    int* id = malloc(sizeof(int));
-    *id = 5;
-    pthread_create(&threads[5],NULL,dobby,id);
    
   /* Wait for Dobby to be done */
+    
     pthread_join(threads[5], NULL);
 
   /* Cleanup Global Variables here */
@@ -120,11 +127,11 @@ void* dobby( void * arg ) {
         sem_wait( &empty_list );
         int rem = total_tasks - task_id_counter;
         if (rem == 0){
-            for( int i = 0; i < NUM_ELVES; i++ ) {
+            for( int i = 0; i < consumer_num; i++ ) {
                 pthread_cancel(threads[i]);
                 printf("cancelling elf %d \n",i);
             }
-            for( int i = 0; i < NUM_ELVES; i++ ) {
+            for( int i = 0; i < consumer_num; i++ ) {
             	sem_post( &full_list );
                 pthread_join(threads[i], NULL);
                 printf("elf %d has terminated\n",i);
@@ -198,7 +205,7 @@ void post_tasks( int howmany ) {
     for ( int i = 0; i < howmany; ++i ) {
         task* t = malloc( sizeof( task ));
         t->id = ++task_id_counter;
-        t->input = random_string( HASH_BUFFER_LENGTH, &random_seed );
+        t->input = random_string( buffer_size, &random_seed );
         node* n = malloc( sizeof( node ));
         n->task = t;
         n->next = list_head;
@@ -207,8 +214,8 @@ void post_tasks( int howmany ) {
 }
 
 void do_work( task* todo ) {
-     unsigned char* output_buffer = calloc( HASH_BUFFER_LENGTH , sizeof ( unsigned char ) );
-     SHA256( todo->input, HASH_BUFFER_LENGTH, output_buffer );
+     unsigned char* output_buffer = calloc( buffer_size , sizeof ( unsigned char ) );
+     SHA256( todo->input, buffer_size, output_buffer );
      printf("Task %d was completed!\n", todo->id);
      free( output_buffer );
      free( todo->input );
