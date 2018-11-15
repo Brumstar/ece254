@@ -41,10 +41,10 @@ int main(int argc, char *argv[])
 	g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
 
-    gettimeofday(&tv, NULL);
-    g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
+        gettimeofday(&tv, NULL);
+        g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
-    printf("System execution time: %.6lf seconds\n", \
+        printf("System execution time: %.6lf seconds\n", \
             g_time[1] - g_time[0]);
 	exit(0);
 }
