@@ -121,12 +121,13 @@ int main( int argc, char** argv ) {
     }
    
     /* Wait for Dobby to be done */
-
+    printf("Before join\n");
     for( int i = 0; i < producer_num; i++) {
 	pthread_join(P[i], NULL);
     }
-
+    printf("Before done\n");
     sem_wait(&done);
+    printf("After done\n");
     for( int i = 0; i < consumer_num; i++) {
        pthread_cancel(C[i]);
     } 
@@ -174,16 +175,21 @@ void* consumer( void * ignore ) {
     pthread_cleanup_push( consumer_cleanup, ignore );
     while( 1 ) {
         pthread_testcancel();
+        //printf("Consumer prelock\n");
         pthread_mutex_lock( &mutex );
+        //printf("Consumer post lock\n");
 	if (active_tasks > 0) {
 	    todo = take_task();
 	    check_root(todo, consumer_id);
+            printf("rem %d\n", remaining_tasks);
 	    if (remaining_tasks == 0) {
 	        sem_post(&done);
             }
             active_tasks--;
-	} 
+	}
+        //printf("Consumer pre unlock\n");
         pthread_mutex_unlock( &mutex );
+        //printf("Consumer post unlock\n");
 	if (active_tasks == buffer_size - 1) {
 	    sem_post(&empty_list);
 	}
@@ -192,6 +198,7 @@ void* consumer( void * ignore ) {
 }
 
 void consumer_cleanup( void* arg ) {
+    printf("Consumer cancel id %d\n", *((int *)arg));
     free(arg);
 }
 
