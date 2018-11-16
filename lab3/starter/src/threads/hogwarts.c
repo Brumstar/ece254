@@ -10,7 +10,6 @@
 /* Please don't change anything between this line and 
  *    the start of the global variables */
 
-unsigned int random_seed = 252;
 int task_id_counter = 0;
 
 typedef struct {
@@ -62,7 +61,7 @@ void check_root( task* todo, int consumer_id );
  *          NOT thread safe
  *             return: nothing
  *             */
-void post_tasks( int howmany, int producer_id );
+void post_tasks( int producer_id, int value );
 
 /* Used to unlock a mutex, if necessary, if a thread
  *    is cancelled when blocked on a semaphore
@@ -133,20 +132,18 @@ void* producer( void * arg ) {
     int *producer_id = (int *)arg;
     while(1){
         printf("Starting producer\n");
-        sem_wait( &empty_list );
-        printf("Producer after wait\n");
-        int rem = total_tasks - task_id_counter;
-	printf("Tasks remaining %d\n", rem);
-        if (rem == 0){
-            pthread_exit(0);
-        }else if ( rem < 10 ){
-            post_tasks(rem, *producer_id);
-            active_tasks += rem;
-        }else{
-            post_tasks(10, *producer_id);
-            active_tasks += 10;
-        }
-        sem_post( &full_list );
+	for (int j = *producer_id; j < total_tasks; j += producer_num){
+	    pthread_mutex_lock(&mutex);
+	    if (active_tasks <= buffer_size) {
+		post_tasks(*producer_id, j);
+	    } else {
+		pthread_mutex_unlock(&mutex);
+		sem_wait(&empty_list);
+		pthread_mutex_lock(&mutex);
+		post_tasks(*producer_id, j);
+	    }
+	    pthread_mutex_unlock(&mutex);
+	}
     }
 }
 
@@ -164,16 +161,14 @@ void* consumer( void * ignore ) {
     pthread_cleanup_push( consumer_cleanup, NULL); 
     while( 1 ) {
         pthread_mutex_lock( &mutex );
-        if( active_tasks == 0 ){
-            sem_post( &empty_list );
-            sem_wait( &full_list );
-            pthread_testcancel();
-        }
         pthread_testcancel();
         active_tasks--;
 	printf("Taking a task\n");
         task* todo = take_task();
         pthread_mutex_unlock( &mutex );
+	if (active_tasks == buffer_size - 1) {
+	    sem_post(&empty_list);
+	}
         check_root( todo, consumer_id );
     }
     /* This cleans up the registration of the cleanup handler */
@@ -189,17 +184,16 @@ void consumer_cleanup( void* arg ) {
 
 /****** Do not change anything below this line -- Internal Functionality Only ********/ 
 
-void post_tasks( int howmany, int producer_id ) {
-    printf("Adding %d tasks to the list of active tasks.\n", howmany);
-    for (int j = producer_id; j < howmany; j += producer_num){
-        task* t = malloc( sizeof( task ));
-        t->id = ++task_id_counter;
-	t->value = j;
-        node* n = malloc( sizeof( node ));
-        n->task = t;
-        n->next = list_head;
-        list_head = n;
-    }
+void post_tasks( int producer_id, int value ) {
+    task* t = malloc( sizeof( task ));
+    t->id = ++task_id_counter;
+    printf("Task id is: %d\n", t->id);
+    t->value = value;
+    node* n = malloc( sizeof( node ));
+    n->task = t;
+    n->next = list_head;
+    list_head = n;
+    active_tasks++;
 }
 
 void check_root( task* todo, int consumer_id ) {
