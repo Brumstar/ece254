@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <openssl/sha.h>
+#include <math.h>
 
 
 /* Please don't change anything between this line and 
@@ -15,7 +15,7 @@ int task_id_counter = 0;
 
 typedef struct {
     int id;
-    unsigned char* input;
+    int value;
 } task;
 
 typedef struct node {
@@ -34,8 +34,8 @@ sem_t full_list;
 
 
 /* Function Prototypes for pthreads */
-void* dobby( void* );
-void* house_elf( void * );
+void* producer( void* );
+void* consumer( void * );
 
 /* Don't change the function prototypes below;
  *    they are your API for how the house elves do work */
@@ -54,7 +54,7 @@ task* take_task();
  *          IS thread safe
  *             return: nothing
  *             */  
-void do_work( task* todo );
+void check_root( task* todo, int consumer_id );
 
 /* Put tasks in the list for elves to do
  *    To be run by: Dobby
@@ -62,86 +62,88 @@ void do_work( task* todo );
  *          NOT thread safe
  *             return: nothing
  *             */
-void post_tasks( int howmany );
+void post_tasks( int howmany, int producer_id );
 
 /* Used to unlock a mutex, if necessary, if a thread
  *    is cancelled when blocked on a semaphore
  *    */
-void house_elf_cleanup( void * );
+void consumer_cleanup( void * );
 
 /* Complete the implementation of main() */
 
+node* list_head;
+int total_tasks;
+int buffer_size;
+int producer_num;
+int consumer_num;
+
 int main( int argc, char** argv ) {
-  if ( argc != 5 ) {
-      printf( "Wrong arguments\n");
-      return -1;
-  }
-  /* Init global variables here */
-  list_head = NULL;
-  total_tasks = atoi( argv[1] );
-  buffer_size = atoi( argv[2] );
-  producer_num = atoi( argv[3] );
-  consumer_num = atoi( argv[4] );
+
+    if ( argc != 5 ) {
+        printf( "Wrong arguments\n");
+        return -1;
+    }
+    /* Init global variables here */
+    list_head = NULL;
+    total_tasks = atoi( argv[1] );
+    buffer_size = atoi( argv[2] );
+    producer_num = atoi( argv[3] );
+    producer_num = 1; //REMOVE
+    consumer_num = atoi( argv[4] );
+
+    pthread_t P[producer_num];
+    pthread_t C[consumer_num];
     
-  active_tasks = 0;
-  pthread_mutex_init( &mutex, NULL );
-  sem_init( &full_list, 0, 0 );
-  sem_init( &empty_list, 0, 0 );
-  pthread_t P[producer_num];
-  pthread_t C[consumer_num];
+    active_tasks = 0;
+    pthread_mutex_init( &mutex, NULL );
+    sem_init( &full_list, 0, 0 );
+    sem_init( &empty_list, 0, 0 );
   
+    printf("There are %d tasks to do today.\n", total_tasks);
   
-  
-  printf("There are %d tasks to do today.\n", total_tasks);
-  
-  /* Launch threads here */
+    /* Launch threads here */
     for( int i = 0; i < producer_num; i++ ){
-    	int* id = malloc(sizeof(int));
-    	*id = i;
-   		pthread_create(&P[i],NULL,dobby,id);
+        int *prod_id = malloc(sizeof(int));
+    	*prod_id = i;
+        pthread_create(&P[i], NULL, producer, prod_id);
     }
 
     for( int i = 0; i < consumer_num; i++ ) {
-        int* id = malloc(sizeof(int));
-        *id = i;
-        pthread_create(&C[i], NULL, house_elf, id);
+        int *cons_id = malloc(sizeof(int));
+        *cons_id = i;
+        pthread_create(&C[i], NULL, consumer, cons_id);
     }
    
-  /* Wait for Dobby to be done */
+    /* Wait for Dobby to be done */
     
-    pthread_join(threads[5], NULL);
+    pthread_join(P[0], NULL);
 
-  /* Cleanup Global Variables here */
+    /* Cleanup Global Variables here */
     sem_destroy( &empty_list );
     sem_destroy( &full_list );
     pthread_mutex_destroy( &mutex );
-    free(id);
 
-  return 0;
+    return 0;
 }
 
 /* Write the implementation of dobby() */
 
-void* dobby( void * arg ) {
+void* producer( void * arg ) {
+
+    int *producer_id = (int *)arg;
     while(1){
+        printf("Starting producer\n");
         sem_wait( &empty_list );
+        printf("Producer after wait\n");
         int rem = total_tasks - task_id_counter;
+	printf("Tasks remaining %d\n", rem);
         if (rem == 0){
-            for( int i = 0; i < consumer_num; i++ ) {
-                pthread_cancel(threads[i]);
-                printf("cancelling elf %d \n",i);
-            }
-            for( int i = 0; i < consumer_num; i++ ) {
-            	sem_post( &full_list );
-                pthread_join(threads[i], NULL);
-                printf("elf %d has terminated\n",i);
-            }
             pthread_exit(0);
         }else if ( rem < 10 ){
-            post_tasks(rem);
+            post_tasks(rem, *producer_id);
             active_tasks += rem;
         }else{
-            post_tasks(10);
+            post_tasks(10, *producer_id);
             active_tasks += 10;
         }
         sem_post( &full_list );
@@ -150,62 +152,49 @@ void* dobby( void * arg ) {
 
 /* Complete the implementation of house_elf() */
 
-void* house_elf( void * ignore ) {
+void* consumer( void * ignore ) {
   /* The following function call registers the cleanup
- *      handler to make sure that pthread_mutex_t locks 
- *           are unlocked if the thread is cancelled. It must
- *                be bracketed with a call to pthread_cleanup_pop 
- *                     so don't change this line or the other one */
-  pthread_cleanup_push( house_elf_cleanup, NULL ); 
-  while( 1 ) {
-      
-      pthread_mutex_lock( &mutex );
-      if( active_tasks == 0 ){
-          sem_post( &empty_list );
-          sem_wait( &full_list );
-          pthread_testcancel();
-      }
-      pthread_testcancel();
-      active_tasks--;
-      task* todo = take_task();
-      pthread_mutex_unlock( &mutex );
-      do_work( todo );
-     
-  }
-  /* This cleans up the registration of the cleanup handler */
-  pthread_cleanup_pop( 0 ) ;
+   *      handler to make sure that pthread_mutex_t locks 
+   *           are unlocked if the thread is cancelled. It must
+   *                be bracketed with a call to pthread_cleanup_pop 
+   *                     so don't change this line or the other one */
+    int consumer_id = *((int *)ignore);
+    // TODO: Free ignore
+    printf("Starting consumer with id %d\n", consumer_id);
+    pthread_cleanup_push( consumer_cleanup, NULL); 
+    while( 1 ) {
+        pthread_mutex_lock( &mutex );
+        if( active_tasks == 0 ){
+            sem_post( &empty_list );
+            sem_wait( &full_list );
+            pthread_testcancel();
+        }
+        pthread_testcancel();
+        active_tasks--;
+	printf("Taking a task\n");
+        task* todo = take_task();
+        pthread_mutex_unlock( &mutex );
+        check_root( todo, consumer_id );
+    }
+    /* This cleans up the registration of the cleanup handler */
+    pthread_cleanup_pop( 0 ) ;
 }
 
 /* Implement unlocking of any pthread_mutex_t mutex types
  *    that are locked in the house_elf thread, if any 
  *    */
-void house_elf_cleanup( void* arg ) {
+void consumer_cleanup( void* arg ) {
     pthread_mutex_unlock( &mutex );
 }
 
 /****** Do not change anything below this line -- Internal Functionality Only ********/ 
 
-/* Generate random string code based off original by Ates Goral */
-char* random_string(const int len, unsigned int * generator_seed) {
-    static const char alphanum[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-    char* s = malloc( (len+1) * sizeof( char ));
-
-    for (int i = 0; i < len; ++i) {
-        s[i] = alphanum[rand_r(generator_seed) % (sizeof(alphanum) - 1)];
-    }
-    s[len] = 0;
-    return s;
-}
-
-void post_tasks( int howmany ) {
+void post_tasks( int howmany, int producer_id ) {
     printf("Adding %d tasks to the list of active tasks.\n", howmany);
-    for ( int i = 0; i < howmany; ++i ) {
+    for (int j = producer_id; j < howmany; j += producer_num){
         task* t = malloc( sizeof( task ));
         t->id = ++task_id_counter;
-        t->input = random_string( buffer_size, &random_seed );
+	t->value = j;
         node* n = malloc( sizeof( node ));
         n->task = t;
         n->next = list_head;
@@ -213,12 +202,17 @@ void post_tasks( int howmany ) {
     }
 }
 
-void do_work( task* todo ) {
-     unsigned char* output_buffer = calloc( buffer_size , sizeof ( unsigned char ) );
-     SHA256( todo->input, buffer_size, output_buffer );
+void check_root( task* todo, int consumer_id ) {
      printf("Task %d was completed!\n", todo->id);
-     free( output_buffer );
-     free( todo->input );
+     int received = todo -> value; 
+     int root = sqrt(todo -> value);
+     if ((root * root) == received) {
+         printf("%d %d %d\n", consumer_id, received, root);
+         // What is this supposed to be
+	 /*if (received == num - 1) {
+             return;
+         }*/
+     }
      free( todo );
 }
 
