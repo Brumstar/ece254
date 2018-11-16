@@ -87,7 +87,6 @@ int main( int argc, char** argv ) {
     total_tasks = atoi( argv[1] );
     buffer_size = atoi( argv[2] );
     producer_num = atoi( argv[3] );
-    producer_num = 1; //REMOVE
     consumer_num = atoi( argv[4] );
 
     pthread_t P[producer_num];
@@ -114,8 +113,11 @@ int main( int argc, char** argv ) {
     }
    
     /* Wait for Dobby to be done */
+
+    for( int i = 0; i < producer_num; i++) {
+	pthread_join(P[i], NULL);
+    }
     
-    pthread_join(P[0], NULL);
 
     /* Cleanup Global Variables here */
     sem_destroy( &empty_list );
@@ -131,7 +133,7 @@ void* producer( void * arg ) {
 
     int *producer_id = (int *)arg;
     while(1){
-        printf("Starting producer\n");
+        printf("Starting producer with id %d\n", *producer_id);
 	for (int j = *producer_id; j < total_tasks; j += producer_num){
 	    printf("Total tasks is %d, j is %d\n", total_tasks, j);
 	    pthread_mutex_lock(&mutex);
