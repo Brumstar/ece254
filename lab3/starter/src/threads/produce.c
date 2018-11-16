@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <math.h>
+#include <sys/time.h>
+#include <time.h>
 
 
 /* Please don't change anything between this line and 
@@ -30,6 +32,9 @@ int task_id_counter = 0;
 pthread_mutex_t mutex;
 sem_t empty_list;
 sem_t done;
+
+struct timeval tv;
+double g_time[2];
 
 
 /* Function Prototypes for pthreads */
@@ -77,6 +82,10 @@ int producer_num;
 int consumer_num;
 
 int main( int argc, char** argv ) {
+
+    gettimeofday(&tv, NULL);
+    g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
+
 
     if ( argc != 5 ) {
         printf( "Wrong arguments\n");
@@ -127,6 +136,12 @@ int main( int argc, char** argv ) {
     sem_destroy( &empty_list );
     sem_destroy( &done);
     pthread_mutex_destroy( &mutex );
+
+    gettimeofday(&tv, NULL);
+    g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
+
+    printf("System execution time: %.6lf seconds\n", \
+        g_time[1] - g_time[0]);
 
     return 0;
 }
