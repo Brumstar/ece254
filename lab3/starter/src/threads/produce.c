@@ -71,7 +71,7 @@ void post_tasks( int producer_id, int value );
 /* Used to unlock a mutex, if necessary, if a thread
  *    is cancelled when blocked on a semaphore
  *    */
-void consumer_cleanup( void * );
+void consumer_cleanup( void* arg);
 
 /* Complete the implementation of main() */
 
@@ -82,7 +82,6 @@ int producer_num;
 int consumer_num;
 
 int main( int argc, char** argv ) {
-
     gettimeofday(&tv, NULL);
     g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
@@ -110,8 +109,8 @@ int main( int argc, char** argv ) {
   
     /* Launch threads here */
     for( int i = 0; i < producer_num; i++ ){
-        int *prod_id = malloc(sizeof(int));
-    	*prod_id = i;
+    	int *prod_id = malloc(sizeof(int));
+	*prod_id = i;
         pthread_create(&P[i], NULL, producer, prod_id);
     }
 
@@ -142,7 +141,6 @@ int main( int argc, char** argv ) {
 
     printf("System execution time: %.6lf seconds\n", \
         g_time[1] - g_time[0]);
-
     return 0;
 }
 
@@ -164,6 +162,7 @@ void* producer( void * arg ) {
 	    }
 	    pthread_mutex_unlock(&mutex);
 	}
+	free(arg);
 	pthread_exit(0);
     }
 }
@@ -172,6 +171,7 @@ void* producer( void * arg ) {
 void* consumer( void * ignore ) {
     int consumer_id = *((int *)ignore);
     task* todo;
+    pthread_cleanup_push( consumer_cleanup, ignore );
     while( 1 ) {
         pthread_testcancel();
         pthread_mutex_lock( &mutex );
@@ -188,7 +188,13 @@ void* consumer( void * ignore ) {
 	    sem_post(&empty_list);
 	}
     }
+    pthread_cleanup_pop( 0 ) ;
 }
+
+void consumer_cleanup( void* arg ) {
+    free(arg);
+}
+
 
 void post_tasks( int producer_id, int value ) {
     task* t = malloc( sizeof( task ));
