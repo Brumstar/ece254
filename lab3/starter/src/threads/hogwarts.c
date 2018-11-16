@@ -133,6 +133,7 @@ void* producer( void * arg ) {
     while(1){
         printf("Starting producer\n");
 	for (int j = *producer_id; j < total_tasks; j += producer_num){
+	    printf("Total tasks is %d, j is %d\n", total_tasks, j);
 	    pthread_mutex_lock(&mutex);
 	    if (active_tasks <= buffer_size) {
 		post_tasks(*producer_id, j);
@@ -144,6 +145,7 @@ void* producer( void * arg ) {
 	    }
 	    pthread_mutex_unlock(&mutex);
 	}
+	pthread_exit(0);
     }
 }
 
@@ -156,30 +158,21 @@ void* consumer( void * ignore ) {
    *                be bracketed with a call to pthread_cleanup_pop 
    *                     so don't change this line or the other one */
     int consumer_id = *((int *)ignore);
+    task* todo;
     // TODO: Free ignore
     printf("Starting consumer with id %d\n", consumer_id);
-    pthread_cleanup_push( consumer_cleanup, NULL); 
     while( 1 ) {
         pthread_mutex_lock( &mutex );
-        pthread_testcancel();
-        active_tasks--;
-	printf("Taking a task\n");
-        task* todo = take_task();
+	if (active_tasks > 0) {
+	    todo = take_task();
+	    check_root(todo, consumer_id);
+            active_tasks--;
+	} 
         pthread_mutex_unlock( &mutex );
 	if (active_tasks == buffer_size - 1) {
 	    sem_post(&empty_list);
 	}
-        check_root( todo, consumer_id );
     }
-    /* This cleans up the registration of the cleanup handler */
-    pthread_cleanup_pop( 0 ) ;
-}
-
-/* Implement unlocking of any pthread_mutex_t mutex types
- *    that are locked in the house_elf thread, if any 
- *    */
-void consumer_cleanup( void* arg ) {
-    pthread_mutex_unlock( &mutex );
 }
 
 /****** Do not change anything below this line -- Internal Functionality Only ********/ 
