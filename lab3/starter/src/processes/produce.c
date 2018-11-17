@@ -91,6 +91,8 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < num_c; i++) {
         waitpid(cons_pids[i], NULL, 0);
     }
+    mq_unlink("/coolqueue");
+    mq_close(queue_d);
 
     gettimeofday(&tv, NULL);
     g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
