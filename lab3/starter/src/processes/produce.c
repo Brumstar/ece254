@@ -55,6 +55,10 @@ int main(int argc, char *argv[]) {
     attr.mq_flags = 0;
     attr.mq_curmsgs = 0;
     queue_d = mq_open("/coolqueue", O_RDWR | O_CREAT, 0644, &attr);
+    if (queue_d == -1) {
+        printf("Failed to open the queue\n");
+	exit(1);
+    }
     printf("Open queue descriptor %d\n", queue_d);
 
     for (int i = 0; i < num_p; i++) {
