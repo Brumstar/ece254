@@ -8,10 +8,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-
-/* Please don't change anything between this line and 
- *    the start of the global variables */
-
+/* Type Definition */
 typedef struct {
     int id;
     int value;
@@ -22,9 +19,8 @@ typedef struct node {
     struct node* next;
 } node;
 
-node* list_head;
 
-/* Global Variables -- Add more if you need! */
+/* Global Variables */
 int total_tasks;
 int active_tasks;
 int remaining_tasks = 0;
@@ -32,6 +28,11 @@ int task_id_counter = 0;
 pthread_mutex_t mutex;
 sem_t empty_list;
 sem_t done;
+node* list_head;
+int total_tasks;
+int buffer_size;
+int producer_num;
+int consumer_num;
 
 struct timeval tv;
 double g_time[2];
@@ -41,46 +42,16 @@ double g_time[2];
 void* producer( void* );
 void* consumer( void * );
 
-/* Don't change the function prototypes below;
- *    they are your API for how the house elves do work */
 
-/* Removes a task from the list of things to do
- *    To be run by: house elf threads
- *       Takes no arguments
- *          NOT thread safe!
- *             return: a pointer to a task for an elf to do
- *             */
+/* Function Declaration */
 task* take_task();
-
-/* Perform the provided task
- *    To be run by: house elf threads
- *       argument: pointer to task to be done
- *          IS thread safe
- *             return: nothing
- *             */  
 void check_root( task* todo, int consumer_id );
-
-/* Put tasks in the list for elves to do
- *    To be run by: Dobby
- *       argument: how many tasks to put in the list
- *          NOT thread safe
- *             return: nothing
- *             */
 void post_tasks( int producer_id, int value );
-
-/* Used to unlock a mutex, if necessary, if a thread
- *    is cancelled when blocked on a semaphore
- *    */
 void consumer_cleanup( void* arg);
 
-/* Complete the implementation of main() */
 
-node* list_head;
-int total_tasks;
-int buffer_size;
-int producer_num;
-int consumer_num;
 
+/*Main Function*/
 int main( int argc, char** argv ) {
     gettimeofday(&tv, NULL);
     g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
@@ -90,6 +61,7 @@ int main( int argc, char** argv ) {
         printf( "Wrong arguments\n");
         return -1;
     }
+	
     /* Init global variables here */
     list_head = NULL;
     total_tasks = atoi( argv[1] );
@@ -120,14 +92,14 @@ int main( int argc, char** argv ) {
         pthread_create(&C[i], NULL, consumer, cons_id);
     }
    
-    /* Wait for Dobby to be done */
+    /* Wait for Producers to be done */
     printf("Before join\n");
     for( int i = 0; i < producer_num; i++) {
 	pthread_join(P[i], NULL);
     }
-    printf("Before done\n");
+    
+    /* Cancel the Consumers When done */
     sem_wait(&done);
-    printf("After done\n");
     for( int i = 0; i < consumer_num; i++) {
        pthread_cancel(C[i]);
     } 
@@ -137,6 +109,7 @@ int main( int argc, char** argv ) {
     sem_destroy( &done);
     pthread_mutex_destroy( &mutex );
 
+    /* Count on Time */
     gettimeofday(&tv, NULL);
     g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
@@ -145,14 +118,15 @@ int main( int argc, char** argv ) {
     return 0;
 }
 
-/* Write the implementation of dobby() */
-
+/*Producer Function*/
 void* producer( void * arg ) {
 
     int *producer_id = (int *)arg;
     while(1){
 	for (int j = *producer_id; j < total_tasks; j += producer_num){
 	    pthread_mutex_lock(&mutex);
+	    //producers produce numbers one by one
+		
 	    if (active_tasks <= buffer_size) {
 		post_tasks(*producer_id, j);
 	    } else {
@@ -161,6 +135,9 @@ void* producer( void * arg ) {
     		pthread_mutex_lock(&mutex);
     		post_tasks(*producer_id, j);
 	    }
+	    //when buffer has a vacancy just post the new number
+	    //else wait for consumers to make vacancy
+		
 	    pthread_mutex_unlock(&mutex);
 	}
 	free(arg);
@@ -168,13 +145,18 @@ void* producer( void * arg ) {
     }
 }
 
-
+/*Consumer Function*/
 void* consumer( void * ignore ) {
     int consumer_id = *((int *)ignore);
     task* todo;
     pthread_cleanup_push( consumer_cleanup, ignore );
+    //cleanup handler
+    //automatically called when thread is canceled
+	
     while( 1 ) {
         pthread_testcancel();
+	//test whether it is cancelled
+	    
         pthread_mutex_lock( &mutex );
 	if (active_tasks > 0) {
 	    todo = take_task();
@@ -185,9 +167,13 @@ void* consumer( void * ignore ) {
             }
             active_tasks--;
 	}
+	//take numbers away if the buffer is not empty
+	    
         if (active_tasks < buffer_size ) {
             sem_post(&empty_list);
         }
+	//inform the producers about vacancy 
+	    
         pthread_mutex_unlock( &mutex );
 	
     }
@@ -196,6 +182,7 @@ void* consumer( void * ignore ) {
 
 void consumer_cleanup( void* arg ) {
     free(arg);
+    //clean up the malloc
 }
 
 
@@ -208,6 +195,7 @@ void post_tasks( int producer_id, int value ) {
     n->next = list_head;
     list_head = n;
     active_tasks++;
+    //post numbers to the buffer list
 }
 
 void check_root( task* todo, int consumer_id ) {
@@ -216,6 +204,7 @@ void check_root( task* todo, int consumer_id ) {
      if ((root * root) == received) {
          printf("%d %d %d\n", consumer_id, received, root);
      }
+     //check whether the number is a square root
      free( todo );
 }
 
@@ -229,6 +218,7 @@ task* take_task( ) {
     free( head );
     remaining_tasks--;
     return t;
+    //take the number from the buffer list
 }
 
 
