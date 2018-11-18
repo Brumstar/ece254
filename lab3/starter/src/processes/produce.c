@@ -27,7 +27,7 @@ struct timeval tv;
 pid_t pini;
 mqd_t queue_d;
 
-void producer(int prod_id);
+void producer(mqd_t fd, int prod_id);
 void consumer(mqd_t fd, int cons_id);
 
 int main(int argc, char *argv[]) {
@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
             exit(1);
         } else if (pros_pids[i] == 0) {
             printf("Creating producer %d\n", i);
-            producer(i);
+            producer(queue_d, i);
         } 
     }
 
@@ -102,14 +102,12 @@ int main(int argc, char *argv[]) {
     exit(0);
 }
 
-void producer(int prod_id){	
-    mqd_t send = mq_open("/coolqueue", O_WRONLY);
-    printf("Send desc %d\n", send);
+void producer(mqd_t fd, int prod_id){	
 
     for (int j = prod_id; j < num; j += num_p){
-    	mq_send(queue_d, (char *)&j, sizeof(int), 1);
+    	mq_send(fd, (char *)&j, sizeof(int), 1);
     }
-    mq_close(send);
+    mq_close(fd);
     exit(0);
 }
 
@@ -126,6 +124,7 @@ void consumer(mqd_t fd, int cons_id) {
             printf("%d %d %d\n", cons_id, received, root);
         }
     }
+    mq_close(fd);
     exit(0);
     perror(NULL);
 }
