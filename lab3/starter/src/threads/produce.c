@@ -10,7 +10,7 @@
 
 
 /* Please don't change anything between this line and 
- *    the start of the global variables */
+ *  *    the start of the global variables */
 
 typedef struct {
     int id;
@@ -42,35 +42,35 @@ void* producer( void* );
 void* consumer( void * );
 
 /* Don't change the function prototypes below;
- *    they are your API for how the house elves do work */
+ *  *    they are your API for how the house elves do work */
 
 /* Removes a task from the list of things to do
- *    To be run by: house elf threads
- *       Takes no arguments
- *          NOT thread safe!
- *             return: a pointer to a task for an elf to do
- *             */
+ *  *    To be run by: house elf threads
+ *   *       Takes no arguments
+ *    *          NOT thread safe!
+ *     *             return: a pointer to a task for an elf to do
+ *      *             */
 task* take_task();
 
 /* Perform the provided task
- *    To be run by: house elf threads
- *       argument: pointer to task to be done
- *          IS thread safe
- *             return: nothing
- *             */  
+ *  *    To be run by: house elf threads
+ *   *       argument: pointer to task to be done
+ *    *          IS thread safe
+ *     *             return: nothing
+ *      *             */  
 void check_root( task* todo, int consumer_id );
 
 /* Put tasks in the list for elves to do
- *    To be run by: Dobby
- *       argument: how many tasks to put in the list
- *          NOT thread safe
- *             return: nothing
- *             */
+ *  *    To be run by: Dobby
+ *   *       argument: how many tasks to put in the list
+ *    *          NOT thread safe
+ *     *             return: nothing
+ *      *             */
 void post_tasks( int producer_id, int value );
 
 /* Used to unlock a mutex, if necessary, if a thread
- *    is cancelled when blocked on a semaphore
- *    */
+ *  *    is cancelled when blocked on a semaphore
+ *   *    */
 void consumer_cleanup( void* arg);
 
 /* Complete the implementation of main() */
