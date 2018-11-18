@@ -37,17 +37,19 @@ int main(int argc, char *argv[]) {
 	exit(1);
     }
 
-    num = atoi(argv[1]);	/* number of items to produce */
+    num = atoi(argv[1]);    /* number of items to produce */
     maxmsg = atoi(argv[2]); /* buffer size                */
     num_p = atoi(argv[3]);  /* number of producers        */
     num_c = atoi(argv[4]);  /* number of consumers        */
 
     gettimeofday(&tv, NULL);
     g_time[0] = (tv.tv_sec) + tv.tv_usec/1000000.;
-
+    
+    //process id
     pid_t pros_pids[num_p];
     pid_t cons_pids[num_c];
 
+    //message queue initialization & opening
     mq_unlink("/coolqueue");
     struct mq_attr attr;
     attr.mq_maxmsg = maxmsg;
@@ -61,6 +63,7 @@ int main(int argc, char *argv[]) {
     }
     printf("Open queue descriptor %d\n", queue_d);
 
+    //fork producers
     for (int i = 0; i < num_p; i++) {
         pros_pids[i] = fork();
         if (pros_pids[i] == -1) {
@@ -72,6 +75,7 @@ int main(int argc, char *argv[]) {
         } 
     }
 
+    //fork consumers
     for (int i = 0; i < num_c; i++) {
         cons_pids[i] = fork();
         if (cons_pids[i] == -1) {
@@ -83,21 +87,27 @@ int main(int argc, char *argv[]) {
         }
     }
    
+    //wait for producers to exit
     for (int i = 0; i < num_p; i++) {
         waitpid(pros_pids[i], NULL, 0);
     }
 
+    //kill the consumers
     int killem = -1;
     for (int i = 0; i < num_c; i++) {
         mq_send(queue_d, (char *) &killem, sizeof(int), 0);
     } 
 
+    //wait for consumers to exit
     for (int i = 0; i < num_c; i++) {
         waitpid(cons_pids[i], NULL, 0);
     }
+    
+    //close the message queue
     mq_unlink("/coolqueue");
     mq_close(queue_d);
 
+    //count on time
     gettimeofday(&tv, NULL);
     g_time[1] = (tv.tv_sec) + tv.tv_usec/1000000.;
 
@@ -107,7 +117,8 @@ int main(int argc, char *argv[]) {
 }
 
 void producer(mqd_t fd, int prod_id){	
-
+    
+    //send messages & close queue
     for (int j = prod_id; j < num; j += num_p){
     	mq_send(fd, (char *)&j, sizeof(int), 1);
     }
@@ -120,6 +131,9 @@ void consumer(mqd_t fd, int cons_id) {
     int root;
     printf("Recv desc %d\n", fd);
     int rcv;    
+	
+    //while not be killed
+    //receive messages & close queue
     while(rcv != -1) {
         mq_receive(fd, (char *)&rcv, sizeof(int), NULL);
         received = rcv;
