@@ -1,3 +1,11 @@
+# README
+
+## Running the Code
+
+Additional READMEs included in processes and threads src trees.
+
+## Original Lab Stuff
+
 examples/ALP/  
     Sample code of fork from Advanced Linux Programming book.
 
