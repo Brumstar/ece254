@@ -28,9 +28,11 @@ typedef struct mem_struct {
 mem_struct best_fit;
 mem_struct worst_fit;
 
-void print_bitmap(int *bitmap);
-
 /* Functions */
+void set_bit(int *bitmap, const unsigned int position);
+int test_bit(int *bitmap, const unsigned int position);
+void clear_bit(int *bitmap, const unsigned int position);
+void print_bitmap(int *bitmap);
 
 /* memory initializer */
 int best_fit_memory_init(size_t size)
@@ -69,7 +71,7 @@ int best_fit_memory_init(size_t size)
     set_bit(best_fit.bitmap, 2);
     print_bitmap(best_fit.bitmap);
 
-    reset_bit(best_fit.bitmap, 0);
+    clear_bit(best_fit.bitmap, 0);
     print_bitmap(best_fit.bitmap);
     return 0;
 
@@ -140,7 +142,7 @@ int test_bit(int *bitmap, const unsigned int position) {
     return (bitmap[position / (sizeof(int) * BITS_IN_BYTE)] & (1 << (position % (sizeof(int) * BITS_IN_BYTE)))) != 0;
 }
 
-void reset_bit(int *bitmap, const unsigned int position) {
+void clear_bit(int *bitmap, const unsigned int position) {
     bitmap[position / (sizeof(int) * BITS_IN_BYTE)] &= ~(1 << (position % (sizeof(int) * BITS_IN_BYTE)));
 }
 
