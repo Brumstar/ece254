@@ -147,7 +147,7 @@ void clear_bit(int *bitmap, const unsigned int position) {
 }
 
 void print_bitmap(int *bitmap) { 
-    int range = ((int)best_fit.free_space - (int)best_fit.mem_chunk) * BITS_IN_BYTE;
+    int range = (best_fit.free_space - best_fit.mem_chunk) * BITS_IN_BYTE;
     printf("Range is %d\n", range);
     for (int i = 0; i < range; i++) {
         if (i % 32 == 0) {
