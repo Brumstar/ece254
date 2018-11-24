@@ -148,6 +148,14 @@ void print_bitmap(int *bitmap) {
     int range = ((int)best_fit.free_space - (int)best_fit.mem_chunk) * BITS_IN_BYTE;
     printf("Range is %d\n", range);
     for (int i = 0; i < range; i++) {
+        if (i % 32 == 0) {
+            printf("\n");
+        } else if (i % 16 == 0) {
+            printf("\t\t");
+        } else if (i % 8 == 0) {
+	    printf("\t");
+        }
         printf("%d", test_bit(bitmap, i));
     }
+    printf("\n");
 }
