@@ -9,6 +9,7 @@
 #include <stdio.h> 
 #include <stdlib.h> 
 #include "mem.h"
+#include <stdbool.h>
 
 #define BITS_IN_BYTE 8
 #define BYTE_ALIGNMENT 4
@@ -65,14 +66,6 @@ int best_fit_memory_init(size_t size)
 
     printf("Free space starts at %p\n", best_fit.free_space);
 
-    print_bitmap(best_fit.bitmap);
-
-    set_bit(best_fit.bitmap, 0);
-    set_bit(best_fit.bitmap, 2);
-    print_bitmap(best_fit.bitmap);
-
-    clear_bit(best_fit.bitmap, 0);
-    print_bitmap(best_fit.bitmap);
     return 0;
 
 }
@@ -93,7 +86,69 @@ int worst_fit_memory_init(size_t size)
 /* memory allocators */
 void *best_fit_alloc(size_t size)
 {
-	// To be completed by students
+    print_bitmap(best_fit.bitmap);
+    printf("Trying to alloc %zu bytes\n", size);
+    char bitmap_copy[best_fit.blocks_available];
+    int num_blocks_required = ceil(size / BLOCK_SIZE) + 1;
+    printf("Number of blocks required is %d\n", num_blocks_required);
+    if (num_blocks_required > best_fit.blocks_available) {
+        return NULL;
+    }	
+    void *best_block;
+    int best_size = best_fit.blocks_available;
+    int temp_num_blocks = 0;
+    int blocks_allocated = 0;
+    int range = (best_fit.free_space - best_fit.mem_chunk) * BITS_IN_BYTE;
+    bool changed_best = 0;
+    
+    set_bit(best_fit.bitmap, 7);
+    set_bit(best_fit.bitmap, 5);
+    set_bit(best_fit.bitmap, 3);
+    set_bit(best_fit.bitmap, 1);
+
+    for (int i = 0; i < best_fit.blocks_available; i++) {
+        if (test_bit(best_fit.bitmap, i)) {
+            printf("Found a 1 in position %d\n", i);
+            bitmap_copy[blocks_allocated] = i;
+            blocks_allocated++;
+        }
+    }
+    int freespace_size[blocks_allocated + 1];
+    freespace_size[0] = bitmap_copy[0] - 0;
+    freespace_size[blocks_allocated] =  ((best_fit.free_space - best_fit.mem_chunk) * BITS_IN_BYTE) - bitmap_copy[blocks_allocated-1];
+    for (int j = 1; j < blocks_allocated; j++) {
+       freespace_size[j] = bitmap_copy[j] - bitmap_copy[j-1] - 1; 
+       printf("Freespace size at %d is %d\n", j, freespace_size[j]);
+    }
+    printf("Blocks available is %d\n", best_fit.blocks_available);
+    for (int k = 0; k < blocks_allocated + 1; k++) {
+
+        printf("Freespace math %d\n", freespace_size[k] - num_blocks_required);
+        if (freespace_size[k] - num_blocks_required < best_size && (freespace_size[k] - num_blocks_required) >= 0) {
+            best_size = freespace_size[k];
+            changed_best = 1;
+        }
+    }
+
+    if (!changed_best) {
+        printf("Haven't changed size, returning NULL\n");
+        return NULL;
+    } else {
+        printf("Best size found is %d\n", best_size);
+        return best_size;
+    }
+
+    /*
+    for (int i = 0; i < range; i++) {
+        if (!test_bit(mem_struct.bitmap, i) {
+            temp_num_blocks++;
+            continue;
+        } else {
+            if (temp_num_blocks < best_size) {
+                best_size = temp_num_blocks;
+            }
+        }
+    }*/
 	return NULL;
 }
 
