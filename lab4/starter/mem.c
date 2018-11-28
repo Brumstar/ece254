@@ -9,7 +9,6 @@
 #include <stdio.h> 
 #include <stdlib.h> 
 #include "mem.h"
-#include <stdbool.h>
 
 #define BITS_IN_BYTE 8
 #define BYTE_ALIGNMENT 4
@@ -59,7 +58,7 @@ int best_fit_memory_init(size_t size)
     // determine size necessary for bitmap
     bitmap_size = ceil(log2f(best_fit.blocks_available)) * BLOCK_SIZE;
 
-    printf("Size of bitmap is %d", bitmap_size);
+    printf("Size of bitmap is %d\n", bitmap_size);
 
     // available memory starts after bitmap
     best_fit.free_space = best_fit.mem_chunk + bitmap_size;
@@ -96,11 +95,9 @@ void *best_fit_alloc(size_t size)
     }	
     void *best_block;
     int best_size = best_fit.blocks_available;
-    int temp_num_blocks = 0;
     int blocks_allocated = 0;
-    int range = (best_fit.free_space - best_fit.mem_chunk) * BITS_IN_BYTE;
-    bool changed_best = 0;
-    
+    int changed_best = 0;
+    set_bit(best_fit.bitmap, 16); 
     set_bit(best_fit.bitmap, 7);
     set_bit(best_fit.bitmap, 5);
     set_bit(best_fit.bitmap, 3);
@@ -126,7 +123,7 @@ void *best_fit_alloc(size_t size)
         printf("Freespace math %d\n", freespace_size[k] - num_blocks_required);
         if (freespace_size[k] - num_blocks_required < best_size && (freespace_size[k] - num_blocks_required) >= 0) {
             best_size = freespace_size[k];
-            changed_best = 1;
+            changed_best = k;
         }
     }
 
@@ -134,8 +131,19 @@ void *best_fit_alloc(size_t size)
         printf("Haven't changed size, returning NULL\n");
         return NULL;
     } else {
+        printf("Bitmap address is %p\n", best_fit.bitmap);
+        int bitmap_offset = bitmap_copy[changed_best - 1] + 1;
+        printf("Bitmap offset %d\n", bitmap_offset);
+        printf("Free space is at address %p\n", best_fit.free_space);
+        best_block = best_fit.free_space + (bitmap_offset / BLOCK_SIZE);       
+
+        for (int i = bitmap_offset; i < bitmap_offset + num_blocks_required; i++) {
+            set_bit(best_fit.bitmap, i);
+        }
+        print_bitmap(best_fit.bitmap);
+        printf("Best block is at %p\n", best_block);
         printf("Best size found is %d\n", best_size);
-        return best_size;
+        return best_block;
     }
 
     /*
