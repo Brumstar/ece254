@@ -71,14 +71,35 @@ int best_fit_memory_init(size_t size)
 
 int worst_fit_memory_init(size_t size)
 {
-        /*worst_fit_block = malloc(size);
-        if (!worst_fit_block) {
-            printf("Can't malloc worst fit block.\n");
-            return -1;
-        }*/
-	// To be completed by students
-	// You call malloc once here to obtain the memory to be managed.
-	return 0;
+    int bitmap_size;
+    // allocate initial mem chunk
+    worst_fit.mem_chunk = malloc(size);
+    if (!worst_fit.mem_chunk) {
+        printf("Can't malloc best fit block.\n");
+        return -1;
+    }
+
+    printf("Initialised %zd bytes of memory at %p\n", size, worst_fit.mem_chunk);
+
+    // bitmap starts at beginning of memory chunk
+    worst_fit.bitmap = (int *)worst_fit.mem_chunk;
+
+    // figure out the total number of blocks available
+    worst_fit.blocks_available = (int)(ceil((float)size / (float)BLOCK_SIZE));
+
+    printf("Blocks available %d\n", worst_fit.blocks_available);
+
+    // determine size necessary for bitmap
+    bitmap_size = ceil(log2f(worst_fit.blocks_available)) * BLOCK_SIZE;
+
+    printf("Size of bitmap is %d\n", bitmap_size);
+
+    // available memory starts after bitmap
+    worst_fit.free_space = worst_fit.mem_chunk + bitmap_size;
+
+    printf("Free space starts at %p\n", worst_fit.free_space);
+    
+    return 0;
 
 }
 
@@ -163,8 +184,68 @@ void *best_fit_alloc(size_t size)
 
 void *worst_fit_alloc(size_t size)
 {
-	// To be completed by students
-	return NULL;
+    print_bitmap(worst_fit.bitmap);
+    printf("Trying to alloc %zu bytes\n", size);
+    char bitmap_copy[worst_fit.blocks_available];
+    int num_blocks_required = ceil(size / BLOCK_SIZE) + 1;
+    printf("Number of blocks required is %d\n", num_blocks_required);
+    if (num_blocks_required > worst_fit.blocks_available) {
+        return NULL;
+    }
+    void *best_block;
+    int best_size = 0;
+    int blocks_allocated = 0;
+    int changed_best = 0;
+    set_bit(worst_fit.bitmap, 16);
+    set_bit(worst_fit.bitmap, 7);
+    set_bit(worst_fit.bitmap, 5);
+    set_bit(worst_fit.bitmap, 3);
+    set_bit(worst_fit.bitmap, 1);
+
+    for (int i = 0; i < worst_fit.blocks_available; i++) {
+        if (test_bit(worst_fit.bitmap, i)) {
+            printf("Found a 1 in position %d\n", i);
+            bitmap_copy[blocks_allocated] = i;
+            blocks_allocated++;
+        }
+    }
+    int freespace_size[blocks_allocated + 1];
+    freespace_size[0] = bitmap_copy[0] - 0;
+    freespace_size[blocks_allocated] =  ((worst_fit.free_space - worst_fit.mem_chunk) * BITS_IN_BYTE) - bitmap_copy[blocks_allocated-1];
+    for (int j = 1; j < blocks_allocated; j++) {
+       freespace_size[j] = bitmap_copy[j] - bitmap_copy[j-1] - 1;
+       printf("Freespace size at %d is %d\n", j, freespace_size[j]);
+    }
+    printf("Blocks available is %d\n", worst_fit.blocks_available);
+    for (int k = 0; k < blocks_allocated + 1; k++) {
+
+        printf("Freespace math %d\n", freespace_size[k] - num_blocks_required);
+        if (freespace_size[k] > best_size) {
+            best_size = freespace_size[k];
+            changed_best = k;
+        }
+    }
+
+    if (!changed_best) {
+        printf("Haven't changed size, returning NULL\n");
+        return NULL;
+    } else {
+        printf("Bitmap address is %p\n", worst_fit.bitmap);
+        int bitmap_offset = bitmap_copy[changed_best - 1] + 1;
+        printf("Bitmap offset %d\n", bitmap_offset);
+        printf("Free space is at address %p\n", worst_fit.free_space);
+        best_block = worst_fit.free_space + (bitmap_offset / BLOCK_SIZE);
+
+        for (int i = bitmap_offset; i < bitmap_offset + num_blocks_required; i++) {
+            set_bit(worst_fit.bitmap, i);
+        }
+        print_bitmap(worst_fit.bitmap);
+        printf("Best block is at %p\n", best_block);
+        printf("Best size found is %d\n", best_size);
+        return best_block;
+    }
+
+    return NULL;
 }
 
 /* memory de-allocator */
