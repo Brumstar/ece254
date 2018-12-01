@@ -120,11 +120,6 @@ void *best_fit_alloc(size_t size)
     int best_size = best_fit.blocks_available;
     int blocks_allocated = 0;
     int changed_best = 0;
-    set_bit(best_fit.bitmap, 16); 
-    set_bit(best_fit.bitmap, 7);
-    set_bit(best_fit.bitmap, 5);
-    set_bit(best_fit.bitmap, 3);
-    set_bit(best_fit.bitmap, 1);
 
     for (int i = 0; i < best_fit.blocks_available; i++) {
         if (test_bit(best_fit.bitmap, i)) {
@@ -200,11 +195,6 @@ void *worst_fit_alloc(size_t size)
     int best_size = 0;
     int blocks_allocated = 0;
     int changed_best = 0;
-    set_bit(worst_fit.bitmap, 16);
-    set_bit(worst_fit.bitmap, 7);
-    set_bit(worst_fit.bitmap, 5);
-    set_bit(worst_fit.bitmap, 3);
-    set_bit(worst_fit.bitmap, 1);
 
     for (int i = 0; i < worst_fit.blocks_available; i++) {
         if (test_bit(worst_fit.bitmap, i)) {
@@ -261,19 +251,49 @@ void best_fit_dealloc(void *ptr)
         printf("Best fit dealloc pointer at address %p invalid\n", ptr);
         return;
     }
-    print_bitmap(best_fit, best_fit.bitmap);
-    printf("Some math %lu\n", ptr - best_fit.free_space);
 
-    printf("Free space address is %p\n", best_fit.free_space);
-    printf("Pointer address passed in is %p\n", ptr);
-    printf("End of free space is %p\n", best_fit.mem_chunk + (best_fit.blocks_available * BLOCK_SIZE));
+    int bitmap_index = (ptr - best_fit.free_space) * BLOCK_SIZE;
+    printf("Bitmap dealloc index %d\n", bitmap_index);
+    print_bitmap(best_fit, best_fit.bitmap);
+
+    if (!test_bit(best_fit.bitmap_start, bitmap_index)) {
+        printf("Best fit dealloc incorrect starting block\n");
+        return;
+    }
+
+    clear_bit(best_fit.bitmap_start, bitmap_index);
+    while (test_bit(best_fit.bitmap, bitmap_index)) {
+        clear_bit(best_fit.bitmap, bitmap_index);
+        bitmap_index++;
+    }
+    print_bitmap(best_fit, best_fit.bitmap);
+
     return;
 }
 
 void worst_fit_dealloc(void *ptr) 
 {
-	// To be completed by students
-	return;
+    if (ptr < worst_fit.mem_chunk || ptr > worst_fit.mem_chunk + (worst_fit.blocks_available * BLOCK_SIZE)) {
+        printf("Best fit dealloc pointer at address %p invalid\n", ptr);
+        return;
+    }
+
+    int bitmap_index = (ptr - worst_fit.free_space) * BLOCK_SIZE;
+    printf("Bitmap dealloc index %d\n", bitmap_index);
+    print_bitmap(worst_fit, worst_fit.bitmap);
+
+    if (!test_bit(worst_fit.bitmap_start, bitmap_index)) {
+        printf("Best fit dealloc incorrect starting block\n");
+        return;
+    }
+
+    clear_bit(worst_fit.bitmap_start, bitmap_index);
+    while (test_bit(worst_fit.bitmap, bitmap_index)) {
+        clear_bit(worst_fit.bitmap, bitmap_index);
+        bitmap_index++;
+    }
+    print_bitmap(worst_fit, worst_fit.bitmap);
+    return;
 }
 
 /* memory algorithm metric utility function(s) */
