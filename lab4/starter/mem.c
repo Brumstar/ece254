@@ -251,14 +251,21 @@ void *worst_fit_alloc(size_t size)
 /* memory de-allocator */
 void best_fit_dealloc(void *ptr) 
 {
-	free(ptr);
-	// To be completed by students
-	return;
+    if (ptr < best_fit.mem_chunk || ptr > best_fit.mem_chunk + (best_fit.blocks_available * BLOCK_SIZE)) {
+        printf("Best fit dealloc pointer at address %p invalid\n", ptr);
+        return;
+    }
+    print_bitmap(best_fit.bitmap);
+    printf("Some math %lu\n", ptr - best_fit.free_space);
+
+    printf("Free space address is %p\n", best_fit.free_space);
+    printf("Pointer address passed in is %p\n", ptr);
+    printf("End of free space is %p\n", best_fit.mem_chunk + (best_fit.blocks_available * BLOCK_SIZE));
+    return;
 }
 
 void worst_fit_dealloc(void *ptr) 
 {
-	free(ptr);
 	// To be completed by students
 	return;
 }
