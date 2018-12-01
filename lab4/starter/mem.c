@@ -66,7 +66,7 @@ int best_fit_memory_init(size_t size)
     best_fit.free_space = best_fit.mem_chunk + 2*bitmap_size;
 
     printf("Free space starts at %p\n", best_fit.free_space);
-
+    set_bit(best_fit.bitmap, 3);
     return 0;
 
 }
@@ -100,7 +100,7 @@ int worst_fit_memory_init(size_t size)
     worst_fit.free_space = worst_fit.mem_chunk + 2*bitmap_size;
 
     printf("Free space starts at %p\n", worst_fit.free_space);
-    
+    set_bit(worst_fit.bitmap, 3); 
     return 0;
 
 }
@@ -301,14 +301,43 @@ void worst_fit_dealloc(void *ptr)
 /* count how many free blocks are less than the input size */ 
 int best_fit_count_extfrag(size_t size)
 {
-	// To be completed by students
-	return 0;
+    int frag_blocks = 0;
+    int free_spaces = 0;
+    for(int i = 0; i < best_fit.blocks_available; i++){
+	 if(!test_bit(best_fit.bitmap, i)){
+	    free_spaces++;
+	}else{ 
+	    if(free_spaces){
+		if(free_spaces < size){
+		    frag_blocks++;
+		    free_spaces = 0;
+                }
+	    }
+	}
+    }
+    printf("%d frag blocks\n",frag_blocks);	
+    return frag_blocks;
 }
 
 int worst_fit_count_extfrag(size_t size)
 {
-	// To be completed by students
-	return 0;
+    int frag_blocks = 0;
+    int free_spaces = 0;
+    for(int i = 0; i < worst_fit.blocks_available; i++){
+         if(!test_bit(worst_fit.bitmap, i)){
+            free_spaces++;
+        }else{
+            if(free_spaces){
+                if(free_spaces < size){
+                    frag_blocks++;
+                    free_spaces = 0;
+                }
+            }
+        }
+    }
+    printf("%d frag blocks\n",frag_blocks);
+    return frag_blocks;
+    return 0;
 }
 
 void set_bit(int *bitmap, const unsigned int position) {
