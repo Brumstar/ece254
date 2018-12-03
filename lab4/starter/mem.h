@@ -15,8 +15,8 @@ int best_fit_memory_init(size_t size);
 int worst_fit_memory_init(size_t size);
 
 /* memory allocators */
-void *best_fit_alloc(size_t size);
-void *worst_fit_alloc(size_t size);
+void *best_fit_alloc(double size);
+void *worst_fit_alloc(double size);
 
 /* memory de-allocators, immediate coalesce */
 void best_fit_dealloc(void *ptr);

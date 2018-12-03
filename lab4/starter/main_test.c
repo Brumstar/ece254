@@ -68,9 +68,11 @@ int main(int argc, char *argv[])
 				break;
 			case 4:
 				//Repeated allocations of a fixed size(large)
-				while(1){
+				; i = 4;
+				while(i>0){
 					p = best_fit_alloc(256);
 					printf("best fit: p=%p\n", p);
+					i--;
 				}
 				break;
 			case 5:

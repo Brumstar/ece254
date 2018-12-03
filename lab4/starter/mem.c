@@ -66,7 +66,6 @@ int best_fit_memory_init(size_t size)
     best_fit.free_space = best_fit.mem_chunk + 2*bitmap_size;
 
     printf("Free space starts at %p\n", best_fit.free_space);
-    set_bit(best_fit.bitmap, 3);
     return 0;
 
 }
@@ -100,17 +99,15 @@ int worst_fit_memory_init(size_t size)
     worst_fit.free_space = worst_fit.mem_chunk + 2*bitmap_size;
 
     printf("Free space starts at %p\n", worst_fit.free_space);
-    set_bit(worst_fit.bitmap, 3); 
     return 0;
 
 }
 
 /* memory allocators */
-void *best_fit_alloc(size_t size)
+void *best_fit_alloc(double size)
 {
-    print_bitmap(best_fit, best_fit.bitmap);
     printf("Trying to alloc %zu bytes\n", size);
-    char bitmap_copy[best_fit.blocks_available];
+    int bitmap_copy[best_fit.blocks_available];
     int num_blocks_required = ceil(size / BLOCK_SIZE);
     printf("Number of blocks required is %d\n", num_blocks_required);
     if (num_blocks_required > best_fit.blocks_available) {
@@ -120,7 +117,7 @@ void *best_fit_alloc(size_t size)
     int best_size = best_fit.blocks_available;
     int blocks_allocated = 0;
     int changed_best = 0;
-
+    bitmap_copy[0] = best_size;
     for (int i = 0; i < best_fit.blocks_available; i++) {
         if (test_bit(best_fit.bitmap, i)) {
             printf("Found a 1 in position %d\n", i);
@@ -130,58 +127,46 @@ void *best_fit_alloc(size_t size)
     }
     int freespace_size[blocks_allocated + 1];
     freespace_size[0] = bitmap_copy[0] - 0;
-    freespace_size[blocks_allocated] =  ((best_fit.free_space - best_fit.mem_chunk) * BITS_IN_BYTE) - bitmap_copy[blocks_allocated-1];
-    for (int j = 1; j < blocks_allocated; j++) {
-       freespace_size[j] = bitmap_copy[j] - bitmap_copy[j-1] - 1; 
-       printf("Freespace size at %d is %d\n", j, freespace_size[j]);
+    if( blocks_allocated ){   
+	freespace_size[blocks_allocated] = 255 - bitmap_copy[blocks_allocated-1];
+        printf("Freespace size at %d is %d\n", blocks_allocated, freespace_size[blocks_allocated]);
+	for (int j = 1; j < blocks_allocated; j++) {
+           freespace_size[j] = bitmap_copy[j] - bitmap_copy[j-1] - 1; 
+           printf("Freespace size at %d is %d\n", j, freespace_size[j]);
+        }
     }
-    printf("Blocks available is %d\n", best_fit.blocks_available);
+    printf("blocks_allocated is %d\n", blocks_allocated);
     for (int k = 0; k < blocks_allocated + 1; k++) {
-
-        printf("Freespace math %d\n", freespace_size[k] - num_blocks_required);
         if (freespace_size[k] - num_blocks_required < best_size && (freespace_size[k] - num_blocks_required) >= 0) {
             best_size = freespace_size[k];
+	    printf("freespace_size[%d] is %d\n", k, freespace_size[k]);
             changed_best = k;
         }
     }
-
-    if (!changed_best) {
+    if (( changed_best == 0)  && (num_blocks_required > freespace_size[changed_best])) {
         printf("Haven't changed size, returning NULL\n");
         return NULL;
-    } else {
-        printf("Bitmap address is %p\n", best_fit.bitmap);
-        int bitmap_offset = bitmap_copy[changed_best - 1] + 1;
-        printf("Bitmap offset %d\n", bitmap_offset);
-        printf("Free space is at address %p\n", best_fit.free_space);
+    }else {
+        int bitmap_offset = changed_best ?  bitmap_copy[changed_best - 1]+1 : 0 ;
         best_block = best_fit.free_space + (bitmap_offset / BLOCK_SIZE);       
 
         for (int i = bitmap_offset; i < bitmap_offset + num_blocks_required; i++) {
             set_bit(best_fit.bitmap, i);
         }
-        set_bit(best_fit.bitmap_start, bitmap_offset);
-        print_bitmap(best_fit, best_fit.bitmap);
+	set_bit(best_fit.bitmap_start, bitmap_offset);
+        printf("bitmap after allocation");
+	print_bitmap(best_fit, best_fit.bitmap);
+	printf("bitmap_start after allocation");
         print_bitmap(best_fit, best_fit.bitmap_start);
         printf("Best block is at %p\n", best_block);
         printf("Best size found is %d\n", best_size);
         return best_block;
     }
-
-    /*
-    for (int i = 0; i < range; i++) {
-        if (!test_bit(mem_struct.bitmap, i) {
-            temp_num_blocks++;
-            continue;
-        } else {
-            if (temp_num_blocks < best_size) {
-                best_size = temp_num_blocks;
-            }
-        }
-    }*/
 	return NULL;
 }
 
 
-void *worst_fit_alloc(size_t size)
+void *worst_fit_alloc(double size)
 {
     print_bitmap(worst_fit, worst_fit.bitmap);
     printf("Trying to alloc %zu bytes\n", size);
@@ -254,8 +239,6 @@ void best_fit_dealloc(void *ptr)
 
     int bitmap_index = (ptr - best_fit.free_space) * BLOCK_SIZE;
     printf("Bitmap dealloc index %d\n", bitmap_index);
-    print_bitmap(best_fit, best_fit.bitmap);
-
     if (!test_bit(best_fit.bitmap_start, bitmap_index)) {
         printf("Best fit dealloc incorrect starting block\n");
         return;
@@ -266,8 +249,10 @@ void best_fit_dealloc(void *ptr)
         clear_bit(best_fit.bitmap, bitmap_index);
         bitmap_index++;
     }
+    printf("bitmap after deallocation");
     print_bitmap(best_fit, best_fit.bitmap);
-
+    printf("bitmap_start after deallocation");
+    print_bitmap(best_fit, best_fit.bitmap_start);
     return;
 }
 
@@ -353,7 +338,6 @@ void clear_bit(int *bitmap, const unsigned int position) {
 }
 
 void print_bitmap(mem_struct mem, int *bitmap) { 
-    printf("Range is %d\n", mem.blocks_available);
     for (int i = 0; i < mem.blocks_available; i++) {
         if (i % 32 == 0) {
             printf("\n");
