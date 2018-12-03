@@ -118,18 +118,33 @@ int main(int argc, char *argv[])
 				}
 				num = worst_fit_count_extfrag(4);
 				break;
+			case 2:
+				while(1){
+					q = worst_fit_alloc(256);
+					printf("best fit: q=%p\n", q);
+					if ( q != NULL ) {
+					worst_fit_dealloc(q);	
+					}
+					num = worst_fit_count_extfrag(4);
+					printf("num = %d\n", num);
+				} 
+				break;
 			case 3:
 				//Repeated allocations of a fixed size(small)
-				while(1){
+				; int i = 12;
+				while(i>0){
 					p = worst_fit_alloc(8);
 					printf("worst fit: p=%p\n", p);
+					i--;
 				}
 				break;
 			case 4:
 				//Repeated allocations of a fixed size(large)
-				while(1){
+				; i = 4;
+				while(i>0){
 					p = worst_fit_alloc(256);
 					printf("worst fit: p=%p\n", p);
+					i--;
 				}
 				break;
 			case 5:
