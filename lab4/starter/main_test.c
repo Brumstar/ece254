@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 {
 	char model = *argv[1];
 	int algo = atoi(argv[2]); 
-	void *p, *q;
+	void *p, *q, *a, *b;
 	int num = 0;
 
 	if( model == 'b' ){
@@ -40,10 +40,6 @@ int main(int argc, char *argv[])
 				//Allocate greater than initialised memory
 				p = best_fit_alloc(1025);
 				printf("best fit: p=%p\n", p);
-				if ( p != NULL ) {
-				best_fit_dealloc(p);	
-				}
-				num = best_fit_count_extfrag(4);
 				break;
 			case 2:
 				//Repeatedly allocate and deallocate same block while checking external fragmentation
@@ -94,6 +90,26 @@ int main(int argc, char *argv[])
 				p = NULL;
 				best_fit_dealloc(p);
 				break;	
+			case 8:
+				//External fragmentation
+				p = best_fit_alloc(32);
+				q = best_fit_alloc(32);
+				a = best_fit_alloc(32);
+				best_fit_dealloc(q);
+				q = best_fit_alloc(16);
+				num = best_fit_count_extfrag(5);
+				printf("num = %d\n", num);
+				break;
+			case 9:
+				//Worst fit advantages
+				p = best_fit_alloc(128);
+                                q = best_fit_alloc(128);
+                                a = best_fit_alloc(128);
+                                best_fit_dealloc(q);
+                                q = best_fit_alloc(128);
+                                b = best_fit_alloc(640);
+                                break;
+				 
 		}
 		
 
@@ -113,10 +129,6 @@ int main(int argc, char *argv[])
 				//Allocate greater than initialised memory
 				q = worst_fit_alloc(1025);
 				printf("worst fit: q=%p\n", q);
-				if ( q != NULL ) {
-					worst_fit_dealloc(q);
-				}
-				num = worst_fit_count_extfrag(4);
 				break;
 			case 2:
 				while(1){
@@ -165,7 +177,26 @@ int main(int argc, char *argv[])
 				//Dealloc invalid pointers
 				p = NULL;
 				worst_fit_dealloc(p);
-				break;	
+				break;
+			case 8:
+				//External fragmentation
+				p = worst_fit_alloc(32);
+                                q = worst_fit_alloc(32);
+                                a = worst_fit_alloc(32);
+                                worst_fit_dealloc(q);
+                                q = worst_fit_alloc(16);
+                                num = worst_fit_count_extfrag(5);
+                                printf("num = %d\n", num);
+                                break;
+			case 9:
+				//Worst fit disadvantages
+				p = worst_fit_alloc(128);
+				q = worst_fit_alloc(128);
+				a = worst_fit_alloc(128);
+				worst_fit_dealloc(q);
+                                q = worst_fit_alloc(128);
+				b = worst_fit_alloc(640);
+				break;
 		}
 		
 
@@ -173,8 +204,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Should not reach here!\n");
 		exit(1);
 	}
-
-	printf("num = %d\n", num);
 
 	return 0;
 }
